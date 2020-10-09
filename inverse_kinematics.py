@@ -3,22 +3,35 @@ from numpy import arctan2, sin, cos
 from sympy import symbols, simplify
 from sympy.matrices import Matrix
 from utils import *
-
-def inverse_kinematics(xyz, rpy):
+import sys
+def inverse_kinematics(xyz, rpy, q=None):
     q_singular, d,a, alpha = KukaKR10R11000_2_configurations()
+    q3 = 0
+    q4 = 0
+    q5 = 0
 
-    R = simplify(Rx(rpy[0]) * Ry(rpy[1]) * Rz(rpy[2]))
-    R_arr = np.array(R).astype(np.float)
+    # R = simplify(Rx(rpy[0]) * Ry(rpy[1]) * Rz(rpy[2]))
+    # T_arr = np.array(R).astype(np.float)
+
+    T = Rz(q[0]) * Tz(d[0]) * Tx(a[0]) * Ry(q[1]) * Tz(a[1]) * Ry(q[2]) * Tx(a[2]) * \
+     Tz(d[2]) * Rx(q[3]) * Tx(d[3]) * Ry(q[4]) * Tx(d[4]) * Rx(q[5]) 
+    T = simplify(T)
+    T_arr = np.array(T).astype(np.float)
+
+    
+
     #Coordinates of Spherical Wrist Center
-    Pc = np.array(xyz) - R_arr[:3,:3].dot(np.array([0,0,d[5]]))
+    Pc = np.array(xyz) - T_arr[:3,:3].dot(np.array([0,0,d[5]]))
     [xc,yc,zc] = Pc.flatten()
 
     if xc == yc == 0:
         print("Singularity case")
         return
 
-    q0 = arctan2(yc,xc)
-    
+    q0_1 = arctan2(yc,xc)
+    q0_2 = np.pi + arctan2(yc, xc)
+    q0 = q0_1
+
     l = sqrt(xc**2 + yc**2) - a[0]
     h = zc - d[0]
     u = sqrt(l**2+h**2)
@@ -45,19 +58,38 @@ def inverse_kinematics(xyz, rpy):
 
     q1 = phi1 + phi2
 
-    q3 = arctan2(np.float(R_arr[1,2]), np.float(R_arr[0,2]))
-    q4 = arctan2(np.float(R_arr[1,2]), np.float(-R_arr[2,2] * sin(q3)))
-    q5 = arctan2(np.float(-R_arr[2,1]), np.float(R_arr[2,0]))
-    # q3 = arctan2(np.float(R_arr[1,0]), np.float(-R_arr[2,0]))
-    # q5 = arctan2(np.float(-R_arr[0,1]), np.float(R_arr[0,2]))
-    # if abs(np.float(R_arr[0,0]) - 1) <= 0.0001 :
-    #     if abs(np.float(R_arr[0,2])) <= 0.0001:
-    #         q4 = arctan2(np.float(R_arr[0,1])/sin(q5), np.float(R_arr[0,0]))
-    #     else:
-    #         q4 = arctan2(np.float(R_arr[0,2])/cos(q5), np.float(R_arr[0,0]))
+    T012 = Rz(q[0]) * Tz(d[0]) * Tx(a[0]) * Ry(q[1]) * Tz(a[1]) * Ry(q[2]) * Tx(a[2]) * \
+     Tz(d[2])
+    
+    T012 = simplify(T012)
+    T012_arr = np.array(T012).astype(np.float)
 
-    # else:   
-    #     q4 = np.arccos(np.float(R_arr[0,0]))
+    T345 = Rx(q[3]) * Tx(d[3]) * Ry(q[4]) * Tx(d[4]) * Rx(q[5]) 
+    T345 = simplify(T345)
+    T345_arr = np.array(T345).astype(np.float)
+
+    T345_bis = T012_arr.T * T_arr
+
+    # Solution 1
+    # if abs(T345_bis[2,2]) != 1:
+    #     q3 = arctan2(np.float(T345_bis[0,2]), -np.float(T345_bis[1,2]))
+    #     q5 = arctan2(np.float(T345_bis[2,0]), np.float(T345_bis[2,0]))
+    #     q4 = arctan2(np.sqrt(np.float(T345_bis[0,2])**2 + np.float(T345_bis[1,2])**2), np.float(T345_bis[2,2]))
+
+    # else:
+    #     print("Singularity case")
+    #     sys.exit(0)
+
+    # Solution 2
+    if abs(T345_bis[2,2]) != 1:
+        q3 = arctan2(-np.float(T345_bis[0,2]), np.float(T345_bis[1,2]))
+        q5 = arctan2(-np.float(T345_bis[2,0]), -np.float(T345_bis[2,0]))
+        q4 = arctan2(-np.sqrt(np.float(T345_bis[0,2])**2 + np.float(T345_bis[1,2])**2), np.float(T345_bis[2,2]))
+
+    else:
+        print("Singularity case")
+        sys.exit(0)
+
    
 
     return np.array([q0,q1,q2]).reshape(-1,1), [q3,q4,q5]  

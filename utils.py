@@ -27,19 +27,19 @@ def Rz(q):
 
 def Tx(d):
     T = np.eye(4,4)
-    T[0,3] = d
+    T[0,3] = np.float(d)
     T = Matrix(T)
     return T
 
 def Ty(d):
     T = np.eye(4,4)
-    T[1,3] = d
+    T[1,3] = np.float(d)
     T = Matrix(T)
     return T
 
 def Tz(d):
     T = np.eye(4,4)
-    T[2,3] = d
+    T[2,3] = np.float(d)
     T = Matrix(T)
     return T
 
